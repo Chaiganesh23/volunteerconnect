@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/authStore';
 
 export const VolunteerDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore(); // access user
+  const { user } = useAuthStore(); // Access user
 
   if (!user) {
     return <div className="text-center mt-10 text-gray-600">Loading profile...</div>;
@@ -18,17 +18,16 @@ export const VolunteerDashboard = () => {
         Hi, {user.name} 👋
       </div>
 
-      {/* Search Bar */}
+      {/* Dashboard Header + Search Button */}
       <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-md">
         <h2 className="text-2xl font-semibold text-blue-700">Volunteer Dashboard</h2>
-        <div className="relative w-1/2">
-          <Search className="absolute left-3 top-2.5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search for events..."
-            className="w-full pl-10 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        <button
+          onClick={() => navigate('/volunteer/search')}
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition duration-300"
+        >
+          <Search className="w-5 h-5" />
+          <span className="font-medium">Search Events & Orgs</span>
+        </button>
       </div>
 
       {/* Dashboard Sections */}

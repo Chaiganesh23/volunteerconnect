@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuthStore } from '../store/authStore';
 
@@ -41,59 +41,65 @@ export default function PostEvent() {
       return;
     }
 
-     try {
-        // Get the organization document using uid
-        const orgDocRef = doc(db, 'organizations', user.uid);
-        const orgSnap = await getDoc(orgDocRef);
+    try {
+      // Get the organization document using uid
+      const orgDocRef = doc(db, 'organizations', user.uid);
+      const orgSnap = await getDoc(orgDocRef);
 
-        if (!orgSnap.exists()) {
-          alert("Organization not found in Firestore.");
-          return;
-        }
-
-        const orgData = orgSnap.data();
-        const org_id = orgData?.org_id;
-
-        if (!org_id) {
-          alert("org_id missing in the organization document.");
-          return;
-        }
-
-        // Prepare event details
-        const eventDetails = {
-          ...formData,
-          skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
-          interests: formData.interests.split(',').map(i => i.trim()).filter(Boolean),
-          date,
-          createdAt: serverTimestamp(),
-          org_id: org_id,
-        };
-
-        // Save to 'events' collection
-        await addDoc(collection(db, 'events'), eventDetails);
-
-        alert('Event posted successfully!');
-
-        // Reset form
-        setFormData({
-          title: '',
-          description: '',
-          imageUrl: '',
-          venue: '',
-          city: '',
-          skills: '',
-          interests: '',
-          volunteersNeeded: '',
-          timeSlot: '',
-          contactName: '',
-          contactInfo: '',
-        });
-        setDate('');
-      } catch (err: any) {
-        console.error("Error posting event:", err.message || err);
-        alert("Failed to post event. Try again.");
+      if (!orgSnap.exists()) {
+        alert("Organization not found in Firestore.");
+        return;
       }
-    };
+
+      const orgData = orgSnap.data();
+      const org_id = orgData?.org_id;
+
+      if (!org_id) {
+        alert("org_id missing in the organization document.");
+        return;
+      }
+
+      // Prepare event details
+      const eventDetails = {
+        ...formData,
+        skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
+        interests: formData.interests.split(',').map(i => i.trim()).filter(Boolean),
+        date,
+        createdAt: serverTimestamp(),
+        org_id: org_id,
+      };
+
+      // Save to 'events' collection
+      const eventRef = await addDoc(collection(db, 'events'), eventDetails);
+
+      // Get organization document reference and update events array
+      const orgRef = doc(db, 'organizations', user.uid);
+      await updateDoc(orgRef, {
+        events: arrayUnion(eventRef.id), // Use arrayUnion to add event ID to the events array
+      });
+
+      alert('Event posted successfully!');
+
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        imageUrl: '',
+        venue: '',
+        city: '',
+        skills: '',
+        interests: '',
+        volunteersNeeded: '',
+        timeSlot: '',
+        contactName: '',
+        contactInfo: '',
+      });
+      setDate('');
+    } catch (err: any) {
+      console.error("Error posting event:", err.message || err);
+      alert("Failed to post event. Try again.");
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-6">

@@ -9,10 +9,13 @@ import { Register } from './pages/Register';
 import { Login } from './pages/Login';
 import { VolunteerDashboard } from './pages/VolunteerDashboard';
 import { OrganizationDashboard } from './pages/OrganizationDashboard';
-import { EventDetails } from './pages/EventDetails';
+import ManageEvents from './pages/ManageEvents';
+import EventDetails from './pages/EventDetails';  // Correct import (default export)
 import { Profile } from './pages/Profile';
 import { Certificates } from './pages/Certificates';
 import PostEvent from './pages/PostEvent';
+import SearchResults from './pages/SearchResults';
+import EventList from './pages/EventList';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -38,9 +41,12 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
+              <Route path="/volunteer/search" element={<SearchResults />} />
+              <Route path="/volunteer/eventdetails/:id" element={<EventDetails />} />
+              <Route path="/volunteer/eventlist/:orgId" element={<EventList />} />
               <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
               <Route path="/organization/post-event" element={<PostEvent />} />
-              <Route path="/events/:id" element={<EventDetails />} />
+              <Route path="/organization/manage-events" element={<ManageEvents />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/certificates" element={<Certificates />} />
             </Routes>

@@ -40,7 +40,7 @@ export function OrganizationDashboard() {
       title: 'Manage Events',
       description: 'Edit or remove events you’ve created.',
       icon: <ClipboardList className="text-green-600" size={32} />,
-      route: '/organization/events',
+      route: '/organization/manage-events',
     },
     {
       title: 'Volunteers',
