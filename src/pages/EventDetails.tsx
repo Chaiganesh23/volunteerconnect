@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Loader2 } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
-interface EventDetails {
+interface EventDetailsType {
   title: string;
   description: string;
   date: string;
@@ -21,9 +22,11 @@ interface EventDetails {
 
 const EventDetails = () => {
   const { id } = useParams();
-  const [event, setEvent] = useState<EventDetails | null>(null);
+  const [event, setEvent] = useState<EventDetailsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [status, setStatus] = useState<'applied' | 'accepted' | 'rejected' | 'none'>('none');
+  const { user } = useAuthStore(); // From Zustand
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -32,7 +35,7 @@ const EventDetails = () => {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setEvent(docSnap.data() as EventDetails);
+          setEvent(docSnap.data() as EventDetailsType);
         } else {
           setError('Event not found.');
         }
@@ -48,6 +51,128 @@ const EventDetails = () => {
       fetchEvent();
     }
   }, [id]);
+
+  useEffect(() => {
+    const checkIfApplied = async () => {
+      if (user?.uid && id) {
+        try {
+          const eventVolRef = doc(db, 'eventvolunteer', id);
+          const eventVolSnap = await getDoc(eventVolRef);
+
+          if (eventVolSnap.exists()) {
+            const eventData = eventVolSnap.data();
+            if (eventData?.registered?.includes(user.uid)) {
+              if (eventData?.accepted?.includes(user.uid)) {
+                setStatus('accepted');
+              } else if (eventData?.rejected?.includes(user.uid)) {
+                setStatus('rejected');
+              } else {
+                setStatus('applied');
+              }
+            } else {
+              setStatus('none');
+            }
+          }
+        } catch (err) {
+          console.error('Error checking application status:', err);
+        }
+      }
+    };
+
+    checkIfApplied();
+  }, [id, user?.uid]);
+
+  const handleApply = async () => {
+    console.log('User:', user); // Check if user is available
+    if (!user?.uid || !id) {
+      alert('You must be logged in to apply.');
+      return;
+    }
+
+    try {
+      const eventVolRef = doc(db, 'eventvolunteer', id);
+      const eventVolSnap = await getDoc(eventVolRef);
+
+      if (eventVolSnap.exists()) {
+        await updateDoc(eventVolRef, {
+          registered: arrayUnion(user.uid),
+        });
+        setStatus('applied');
+      } else {
+        await setDoc(eventVolRef, {
+          eventId: id,
+          registered: [user.uid],
+          accepted: [],
+          rejected: [],
+        });
+        setStatus('applied');
+      }
+
+      alert('Applied successfully!');
+    } catch (err) {
+      console.error('Apply failed:', err);
+      alert('Something went wrong while applying.');
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!user?.uid || !id) {
+      alert('You must be logged in to cancel.');
+      return;
+    }
+
+    try {
+      const eventVolRef = doc(db, 'eventvolunteer', id);
+      await updateDoc(eventVolRef, {
+        registered: arrayRemove(user.uid),
+      });
+      setStatus('none');
+      alert('Application cancelled.');
+    } catch (err) {
+      console.error('Error cancelling application:', err);
+      alert('Something went wrong while cancelling.');
+    }
+  };
+
+  const handleReject = async () => {
+    if (!user?.uid || !id) {
+      alert('You must be logged in to reject.');
+      return;
+    }
+
+    try {
+      const eventVolRef = doc(db, 'eventvolunteer', id);
+      await updateDoc(eventVolRef, {
+        rejected: arrayUnion(user.uid),
+        registered: arrayRemove(user.uid),
+      });
+      setStatus('rejected');
+      alert('You have been rejected from the event.');
+    } catch (err) {
+      console.error('Error rejecting application:', err);
+      alert('Something went wrong while rejecting.');
+    }
+  };
+
+  const handleAccept = async () => {
+    if (!user?.uid || !id) {
+      alert('You must be logged in to accept.');
+      return;
+    }
+
+    try {
+      const eventVolRef = doc(db, 'eventvolunteer', id);
+      await updateDoc(eventVolRef, {
+        accepted: arrayUnion(user.uid),
+        registered: arrayRemove(user.uid),
+      });
+      setStatus('accepted');
+      alert('You have been accepted to the event.');
+    } catch (err) {
+      console.error('Error accepting application:', err);
+      alert('Something went wrong while accepting.');
+    }
+  };
 
   if (loading) {
     return (
@@ -106,12 +231,40 @@ const EventDetails = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => alert('Apply button clicked!')} // Replace with your logic
-          className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition"
-        >
-          Apply to Volunteer
-        </button>
+        <div className="flex gap-4">
+          {status === 'applied' && (
+            <button
+              className="w-full py-3 rounded-xl bg-blue-600 text-white"
+              disabled
+            >
+              Applied
+            </button>
+          )}
+          {status === 'accepted' && (
+            <button
+              className="w-full py-3 rounded-xl bg-green-600 text-white"
+              disabled
+            >
+              Registered
+            </button>
+          )}
+          {status === 'rejected' && (
+            <button
+              className="w-full py-3 rounded-xl bg-red-600 text-white"
+              disabled
+            >
+              Rejected
+            </button>
+          )}
+          {status === 'none' && (
+            <button
+              onClick={handleApply}
+              className="w-full py-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Apply to Volunteer
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

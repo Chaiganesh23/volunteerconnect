@@ -10,12 +10,15 @@ import { Login } from './pages/Login';
 import { VolunteerDashboard } from './pages/VolunteerDashboard';
 import { OrganizationDashboard } from './pages/OrganizationDashboard';
 import ManageEvents from './pages/ManageEvents';
-import EventDetails from './pages/EventDetails';  // Correct import (default export)
+import EventDetails from './pages/EventDetails';
 import { Profile } from './pages/Profile';
 import { Certificates } from './pages/Certificates';
 import PostEvent from './pages/PostEvent';
 import SearchResults from './pages/SearchResults';
 import EventList from './pages/EventList';
+import VolunteersPage from './pages/VolunteersPage';
+import TrackVolunteer from './pages/TrackVolunteer'; // ✅ Correct default import
+import RequestManagement from './pages/RequestManagement'; // ✅ Correct default import
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -47,6 +50,9 @@ function App() {
               <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
               <Route path="/organization/post-event" element={<PostEvent />} />
               <Route path="/organization/manage-events" element={<ManageEvents />} />
+              <Route path="/organization/volunteers" element={<VolunteersPage />} />
+              <Route path="/organization/request-management/:eventId" element={<RequestManagement />} />
+              <Route path="/organization/track-volunteer/:eventId" element={<TrackVolunteer />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/certificates" element={<Certificates />} />
             </Routes>
