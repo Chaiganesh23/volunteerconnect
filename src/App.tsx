@@ -12,7 +12,6 @@ import { OrganizationDashboard } from './pages/OrganizationDashboard';
 import ManageEvents from './pages/ManageEvents';
 import EventDetails from './pages/EventDetails';
 import { Profile } from './pages/Profile';
-import { Certificates } from './pages/Certificates';
 import PostEvent from './pages/PostEvent';
 import SearchResults from './pages/SearchResults';
 import EventList from './pages/EventList';
@@ -60,7 +59,6 @@ function App() {
               <Route path="/organization/request-management/:eventId" element={<RequestManagement />} />
               <Route path="/organization/track-volunteer/:eventId" element={<TrackVolunteer />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/certificates" element={<Certificates />} />
             </Routes>
           </Layout>
         </NotificationProvider>

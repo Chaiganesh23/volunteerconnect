@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, query, where, collection } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -8,26 +8,62 @@ import {
   ClipboardList,
   Users,
   BarChart,
-  Award,
 } from 'lucide-react';
 
 export function OrganizationDashboard() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [orgName, setOrgName] = useState('');
+  const [eventCount, setEventCount] = useState(0);
+  const [totalVolunteers, setTotalVolunteers] = useState(0);
 
   useEffect(() => {
-    const fetchOrgName = async () => {
-      if (user && user.uid) {
-        const docRef = doc(db, 'organizations', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setOrgName(docSnap.data().name || '');
+    const fetchOrgData = async () => {
+      if (!user?.uid) return;
+
+      try {
+        // Fetch organization name
+        const orgRef = doc(db, 'organizations', user.uid);
+        const orgSnap = await getDoc(orgRef);
+        if (orgSnap.exists()) {
+          setOrgName(orgSnap.data().name || '');
         }
+
+        // Use org_id from organization document to query events
+        const orgId = orgSnap.data()?.org_id;
+        const eventQuery = query(collection(db, 'events'), where('org_id', '==', orgId));
+        const eventSnapshot = await getDocs(eventQuery);
+        const eventDocs = eventSnapshot.docs;
+        const eventIds = eventDocs.map((doc) => doc.id);
+
+        console.log('Fetched Event IDs:', eventIds);
+        setEventCount(eventIds.length);
+
+        if (eventIds.length === 0) {
+          console.warn('No events found for this organization.');
+          return;
+        }
+
+        // Fetch all volunteer tracking entries
+        const trackSnapshot = await getDocs(collection(db, 'trackvolunteer'));
+        const volunteerSet = new Set<string>();
+
+        trackSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (eventIds.includes(data.eventUid)) {
+            volunteerSet.add(data.volunteerUid);
+          }
+        });
+
+        console.log('Total unique volunteers:', volunteerSet.size);
+        setTotalVolunteers(volunteerSet.size);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
       }
     };
-    fetchOrgName();
-  }, [user]);
+
+    fetchOrgData();
+  }, [user?.uid]);
 
   const cards = [
     {
@@ -54,12 +90,6 @@ export function OrganizationDashboard() {
       icon: <BarChart className="text-purple-600" size={32} />,
       route: '/organization/analytics',
     },
-    {
-      title: 'Certificates',
-      description: 'Issue certificates and give feedback.',
-      icon: <Award className="text-yellow-500" size={32} />,
-      route: '/organization/certificates',
-    },
   ];
 
   return (
@@ -73,7 +103,19 @@ export function OrganizationDashboard() {
           </p>
         </div>
 
-        {/* Cards Grid */}
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-xl shadow-md text-center">
+            <h2 className="text-4xl font-bold text-blue-600">{eventCount}</h2>
+            <p className="text-gray-600 mt-2">Total Events Created</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-md text-center">
+            <h2 className="text-4xl font-bold text-green-600">{totalVolunteers}</h2>
+            <p className="text-gray-600 mt-2">Total Volunteers Participated</p>
+          </div>
+        </div>
+
+        {/* Navigation Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {cards.map((card, idx) => (
             <div

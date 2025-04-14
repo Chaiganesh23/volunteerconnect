@@ -26,7 +26,7 @@ const EventDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [status, setStatus] = useState<'applied' | 'accepted' | 'rejected' | 'none'>('none');
-  const { user } = useAuthStore(); // From Zustand
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -61,17 +61,18 @@ const EventDetails = () => {
 
           if (eventVolSnap.exists()) {
             const eventData = eventVolSnap.data();
-            if (eventData?.registered?.includes(user.uid)) {
-              if (eventData?.accepted?.includes(user.uid)) {
-                setStatus('accepted');
-              } else if (eventData?.rejected?.includes(user.uid)) {
-                setStatus('rejected');
-              } else {
-                setStatus('applied');
-              }
+
+            if (eventData?.accepted?.includes(user.uid)) {
+              setStatus('accepted');
+            } else if (eventData?.rejected?.includes(user.uid)) {
+              setStatus('rejected');
+            } else if (eventData?.registered?.includes(user.uid)) {
+              setStatus('applied');
             } else {
               setStatus('none');
             }
+          } else {
+            setStatus('none');
           }
         } catch (err) {
           console.error('Error checking application status:', err);
@@ -83,7 +84,6 @@ const EventDetails = () => {
   }, [id, user?.uid]);
 
   const handleApply = async () => {
-    console.log('User:', user); // Check if user is available
     if (!user?.uid || !id) {
       alert('You must be logged in to apply.');
       return;
@@ -97,7 +97,6 @@ const EventDetails = () => {
         await updateDoc(eventVolRef, {
           registered: arrayUnion(user.uid),
         });
-        setStatus('applied');
       } else {
         await setDoc(eventVolRef, {
           eventId: id,
@@ -105,9 +104,9 @@ const EventDetails = () => {
           accepted: [],
           rejected: [],
         });
-        setStatus('applied');
       }
 
+      setStatus('applied');
       alert('Applied successfully!');
     } catch (err) {
       console.error('Apply failed:', err);
@@ -131,46 +130,6 @@ const EventDetails = () => {
     } catch (err) {
       console.error('Error cancelling application:', err);
       alert('Something went wrong while cancelling.');
-    }
-  };
-
-  const handleReject = async () => {
-    if (!user?.uid || !id) {
-      alert('You must be logged in to reject.');
-      return;
-    }
-
-    try {
-      const eventVolRef = doc(db, 'eventvolunteer', id);
-      await updateDoc(eventVolRef, {
-        rejected: arrayUnion(user.uid),
-        registered: arrayRemove(user.uid),
-      });
-      setStatus('rejected');
-      alert('You have been rejected from the event.');
-    } catch (err) {
-      console.error('Error rejecting application:', err);
-      alert('Something went wrong while rejecting.');
-    }
-  };
-
-  const handleAccept = async () => {
-    if (!user?.uid || !id) {
-      alert('You must be logged in to accept.');
-      return;
-    }
-
-    try {
-      const eventVolRef = doc(db, 'eventvolunteer', id);
-      await updateDoc(eventVolRef, {
-        accepted: arrayUnion(user.uid),
-        registered: arrayRemove(user.uid),
-      });
-      setStatus('accepted');
-      alert('You have been accepted to the event.');
-    } catch (err) {
-      console.error('Error accepting application:', err);
-      alert('Something went wrong while accepting.');
     }
   };
 
@@ -205,54 +164,29 @@ const EventDetails = () => {
         <p className="text-gray-600 mb-4">{event.description}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700 mb-6">
-          <div>
-            <strong>Date:</strong> {event.date}
-          </div>
-          <div>
-            <strong>Time:</strong> {event.timeSlot}
-          </div>
-          <div>
-            <strong>Venue:</strong> {event.venue}
-          </div>
-          <div>
-            <strong>City:</strong> {event.city}
-          </div>
-          <div>
-            <strong>Volunteers Needed:</strong> {event.volunteersNeeded}
-          </div>
-          <div>
-            <strong>Interests:</strong> {event.interests}
-          </div>
-          <div>
-            <strong>Skills Required:</strong> {event.skills}
-          </div>
-          <div>
-            <strong>Contact Person:</strong> {event.contactName} ({event.contactInfo})
-          </div>
+          <div><strong>Date:</strong> {event.date}</div>
+          <div><strong>Time:</strong> {event.timeSlot}</div>
+          <div><strong>Venue:</strong> {event.venue}</div>
+          <div><strong>City:</strong> {event.city}</div>
+          <div><strong>Volunteers Needed:</strong> {event.volunteersNeeded}</div>
+          <div><strong>Interests:</strong> {event.interests}</div>
+          <div><strong>Skills Required:</strong> {event.skills}</div>
+          <div><strong>Contact Person:</strong> {event.contactName} ({event.contactInfo})</div>
         </div>
 
         <div className="flex gap-4">
           {status === 'applied' && (
-            <button
-              className="w-full py-3 rounded-xl bg-blue-600 text-white"
-              disabled
-            >
+            <button className="w-full py-3 rounded-xl bg-blue-600 text-white" disabled>
               Applied
             </button>
           )}
           {status === 'accepted' && (
-            <button
-              className="w-full py-3 rounded-xl bg-green-600 text-white"
-              disabled
-            >
+            <button className="w-full py-3 rounded-xl bg-green-600 text-white" disabled>
               Registered
             </button>
           )}
           {status === 'rejected' && (
-            <button
-              className="w-full py-3 rounded-xl bg-red-600 text-white"
-              disabled
-            >
+            <button className="w-full py-3 rounded-xl bg-red-600 text-white" disabled>
               Rejected
             </button>
           )}
