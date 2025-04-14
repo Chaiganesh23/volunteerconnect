@@ -7,7 +7,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { Home } from './pages/Home';
 import { Register } from './pages/Register';
 import { Login } from './pages/Login';
-import { VolunteerDashboard } from './pages/VolunteerDashboard';
+import  { VolunteerDashboard }  from './pages/VolunteerDashboard';
 import { OrganizationDashboard } from './pages/OrganizationDashboard';
 import ManageEvents from './pages/ManageEvents';
 import EventDetails from './pages/EventDetails';
@@ -19,6 +19,9 @@ import EventList from './pages/EventList';
 import VolunteersPage from './pages/VolunteersPage';
 import TrackVolunteer from './pages/TrackVolunteer'; // ✅ Correct default import
 import RequestManagement from './pages/RequestManagement'; // ✅ Correct default import
+import UpcomingEvents from "./pages/UpcomingEvents";
+import Notifications from './pages/Notifications';
+import PastParticipations from './pages/PastParticipations';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -47,6 +50,9 @@ function App() {
               <Route path="/volunteer/search" element={<SearchResults />} />
               <Route path="/volunteer/eventdetails/:id" element={<EventDetails />} />
               <Route path="/volunteer/eventlist/:orgId" element={<EventList />} />
+              <Route path="/volunteer/upcoming-events" element={<UpcomingEvents />} />
+              <Route path="/volunteer/past-participations" element={<PastParticipations />} />
+              <Route path="/volunteer/notifications" element={<Notifications />} />
               <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
               <Route path="/organization/post-event" element={<PostEvent />} />
               <Route path="/organization/manage-events" element={<ManageEvents />} />

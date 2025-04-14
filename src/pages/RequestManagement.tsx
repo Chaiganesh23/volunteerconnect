@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const RequestManagement = () => {
@@ -19,7 +19,7 @@ const RequestManagement = () => {
         const eventRef = doc(db, 'events', eventId);
         const eventSnap = await getDoc(eventRef);
         if (eventSnap.exists()) {
-          setEventDetails(eventSnap.data());
+          setEventDetails({ id: eventSnap.id, ...eventSnap.data() });
         }
       }
     };
@@ -70,48 +70,59 @@ const RequestManagement = () => {
     const newAccepted = action === 'accept' ? [...volunteers.accepted.map(v => v.uid), uid] : volunteers.accepted.map(v => v.uid);
     const newRejected = action === 'reject' ? [...volunteers.rejected.map(v => v.uid), uid] : volunteers.rejected.map(v => v.uid);
 
-    // Update the eventvolunteer document
     await updateDoc(ref, {
       registered: newRegistered.map(v => v.uid),
       accepted: Array.from(new Set(newAccepted)),
       rejected: Array.from(new Set(newRejected)),
     });
 
-    // Update the volunteers state locally
     setVolunteers((prev) => ({
       registered: newRegistered,
       accepted: action === 'accept' ? [...prev.accepted, prev.registered.find(v => v.uid === uid)!] : prev.accepted,
       rejected: action === 'reject' ? [...prev.rejected, prev.registered.find(v => v.uid === uid)!] : prev.rejected,
     }));
 
-    // Prepare the notification message
-    const notificationMessage =
+    // Notification message
+    const message =
       action === 'accept'
-        ? `Your request has been accepted for the event '${eventDetails.title}' by the organization '${eventDetails.organizationName}'.`
-        : `We appreciate your interest, but unfortunately your request for the event '${eventDetails.title}' could not be accepted by the organization '${eventDetails.organizationName}'. We hope you’ll consider volunteering for future events!`;
+        ? `Your request has been accepted for the event '${eventDetails.title}'.`
+        : `We appreciate your interest. Unfortunately, your request for the event '${eventDetails.title}' was not accepted.`;
 
-    // Add the notification to Firestore
-    const notificationRef = await addDoc(collection(db, 'notifications'), {
+    await addDoc(collection(db, 'notifications'), {
       eventUid: eventId,
-      organizationUid: eventDetails.organizationId,
+      organizationUid: eventDetails.org_id || '',
       volunteerUid: uid,
-      message: notificationMessage,
+      message,
       createdAt: serverTimestamp(),
     });
-    console.log('Notification added with ID: ', notificationRef.id);
 
-    // If the action is accept, add the volunteer to upcoming events
+    // Upcoming events logic
     if (action === 'accept') {
-      const upcomingEventRef = await addDoc(collection(db, 'upcomingevents'), {
-        volunteerUid: uid,
-        eventUid: eventId,
-        eventName: eventDetails.title,
-        eventDate: eventDetails.date,
-        eventTime: eventDetails.time,
-        organizationUid: eventDetails.organizationId,
-        createdAt: serverTimestamp(),
-      });
-      console.log('Upcoming Event added with ID: ', upcomingEventRef.id);
+      const upcomingRef = doc(db, 'upcomingevents', uid);
+      const existing = await getDoc(upcomingRef);
+
+      if (existing.exists()) {
+        const data = existing.data();
+        const updatedEventUids = Array.from(new Set([...(data.eventUid || []), eventId]));
+        await updateDoc(upcomingRef, {
+          eventUid: updatedEventUids,
+          eventName: eventDetails.title,
+          eventDate: eventDetails.date,
+          eventTime: eventDetails.timeSlot,
+          organizationUid: eventDetails.org_id || '',
+          createdAt: serverTimestamp(),
+        });
+      } else {
+        await setDoc(upcomingRef, {
+          volunteerUid: uid,
+          eventUid: [eventId],
+          eventName: eventDetails.title,
+          eventDate: eventDetails.date,
+          eventTime: eventDetails.timeSlot,
+          organizationUid: eventDetails.org_id || '',
+          createdAt: serverTimestamp(),
+        });
+      }
     }
   };
 
@@ -171,7 +182,7 @@ const RequestManagement = () => {
           <h2 className="text-2xl font-semibold mb-2">{eventDetails.title}</h2>
           <p className="text-gray-700 mb-1">{eventDetails.description}</p>
           <p className="text-sm text-gray-600">
-            {eventDetails.date} • {eventDetails.time} • {eventDetails.venue}
+            {eventDetails.date} • {eventDetails.timeSlot} • {eventDetails.venue}
           </p>
         </div>
       )}
