@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import QrReader from 'react-qr-scanner';
 import { db } from '../firebase';
-import { collection, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  arrayUnion
+} from 'firebase/firestore';
 
 const TrackVolunteer = () => {
   const { eventId } = useParams();
@@ -105,6 +113,12 @@ const TrackVolunteer = () => {
                 totalHours,
               });
             }
+
+            // Also add eventUid to volunteer's record for pastparticipations
+            const volunteerRef = doc(db, 'volunteers', volunteerUid);
+            await updateDoc(volunteerRef, {
+              pastParticipations: arrayUnion(eventUid),
+            });
 
             // Remove event from upcoming events
             const upcomingRef = doc(db, 'upcomingevents', volunteerUid);
