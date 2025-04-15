@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { doc, getDoc, addDoc, collection, serverTimestamp, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuthStore } from '../store/authStore';
+import { matchVolunteers } from '../components/matchVolunteers';
 
 export default function PostEvent() {
   const [date, setDate] = useState<string>('');
@@ -27,11 +28,46 @@ export default function PostEvent() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleScheduleSuggest = () => {
-    // Dummy logic (replace with ML later)
-    setDate(format(new Date(), 'yyyy-MM-dd'));
-    setFormData((prev) => ({ ...prev, timeSlot: '10AM - 1PM' }));
-  };
+  const handleScheduleSuggest = async () => {
+      const data = {
+        eventName: formData.title,
+        eventDescription: formData.description,
+        interests: formData.interests.split(',').map(i => i.trim()),
+        volunteersNeeded: Number(formData.volunteersNeeded),
+      };
+
+      try {
+        const response = await fetch("http://127.0.0.1:5000/suggest_schedule", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+       if (response.ok) {
+         const result = await response.json();
+
+         // ✅ Set the values
+         setDate(result.date);
+         setFormData((prev) => ({ ...prev, timeSlot: result.timeSlot }));
+
+         // ✅ Show matched volunteer names in alert popup
+         if (result.volunteer_names && result.volunteer_names.length > 0) {
+           const names = result.volunteer_names.join('\n'); // Join names if there are multiple volunteers
+           alert('Suggested volunteers:\n\n${names}');
+         } else {
+           alert("No matching volunteers found, but schedule was suggested.");
+         }
+       } else {
+         const error = await response.json();
+         alert(error.message || "Failed to suggest schedule.");
+       }
+      } catch (err) {
+        console.error("Error suggesting schedule:", err);
+        alert("Schedule suggestion failed.");
+      }
+    };
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +113,8 @@ export default function PostEvent() {
       await updateDoc(orgRef, {
         events: arrayUnion(eventRef.id), // Use arrayUnion to add event ID to the events array
       });
+
+      await matchVolunteers(eventRef.id, eventDetails);
 
       alert('Event posted successfully!');
 

@@ -21,6 +21,8 @@ import RequestManagement from './pages/RequestManagement'; // ✅ Correct defaul
 import UpcomingEvents from "./pages/UpcomingEvents";
 import Notifications from './pages/Notifications';
 import PastParticipations from './pages/PastParticipations';
+import RecommendedEvents from './pages/RecommendedEvents'; // Adjust the path if different
+import  AnalyticsPage  from './pages/AnalyticsPage';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -52,12 +54,14 @@ function App() {
               <Route path="/volunteer/upcoming-events" element={<UpcomingEvents />} />
               <Route path="/volunteer/past-participations" element={<PastParticipations />} />
               <Route path="/volunteer/notifications" element={<Notifications />} />
+              <Route path="/volunteer/recommended-events" element={<RecommendedEvents />} />
               <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
               <Route path="/organization/post-event" element={<PostEvent />} />
               <Route path="/organization/manage-events" element={<ManageEvents />} />
               <Route path="/organization/volunteers" element={<VolunteersPage />} />
               <Route path="/organization/request-management/:eventId" element={<RequestManagement />} />
               <Route path="/organization/track-volunteer/:eventId" element={<TrackVolunteer />} />
+              <Route path="/organization/analytics" element={<AnalyticsPage />} />
               <Route path="/profile" element={<Profile />} />
             </Routes>
           </Layout>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Bell, Search, History } from 'lucide-react';
+import { Calendar, Bell, Search, History, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { doc, getDoc } from 'firebase/firestore';
@@ -48,7 +48,8 @@ export const VolunteerDashboard = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Upcoming Events */}
         <div
           onClick={() => navigate('/volunteer/upcoming-events')}
           className="cursor-pointer bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition duration-300 hover:bg-blue-50"
@@ -60,6 +61,7 @@ export const VolunteerDashboard = () => {
           <p className="text-sm text-gray-500">Check out and join upcoming volunteer events.</p>
         </div>
 
+        {/* Past Participations */}
         <div
           onClick={() => navigate('/volunteer/past-participations')}
           className="cursor-pointer bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition duration-300 hover:bg-green-50"
@@ -71,6 +73,7 @@ export const VolunteerDashboard = () => {
           <p className="text-sm text-gray-500">See events you've participated in and hours contributed.</p>
         </div>
 
+        {/* Notifications */}
         <div
           onClick={() => navigate('/volunteer/notifications')}
           className="cursor-pointer bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition duration-300 hover:bg-purple-50"
@@ -80,6 +83,18 @@ export const VolunteerDashboard = () => {
             <Bell className="h-6 w-6 text-purple-600" />
           </div>
           <p className="text-sm text-gray-500">Stay updated with important alerts and updates.</p>
+        </div>
+
+        {/* Recommended Events */}
+        <div
+          onClick={() => navigate('/volunteer/recommended-events')}
+          className="cursor-pointer bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition duration-300 hover:bg-yellow-50"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold text-yellow-700">Recommended Events</h3>
+            <Star className="h-6 w-6 text-yellow-600" />
+          </div>
+          <p className="text-sm text-gray-500">Events picked for you based on your interests.</p>
         </div>
       </div>
 
