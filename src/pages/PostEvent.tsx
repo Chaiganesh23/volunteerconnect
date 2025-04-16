@@ -53,7 +53,7 @@ export default function PostEvent() {
          // ✅ Show matched volunteer names in alert popup
          if (result.volunteer_names && result.volunteer_names.length > 0) {
            const names = result.volunteer_names.join('\n'); // Join names if there are multiple volunteers
-           alert('Suggested volunteers:\n\n${names}');
+           alert(`Suggested volunteers:\n\n${names}`);
          } else {
            alert("No matching volunteers found, but schedule was suggested.");
          }

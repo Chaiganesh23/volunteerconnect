@@ -146,7 +146,6 @@ const TrackVolunteer = () => {
 
       } catch (err: any) {
         console.error('Error reading QR:', err);
-        setScanError('Error reading QR. Ensure it contains valid volunteerUid and eventUid.');
       }
     }
   };
