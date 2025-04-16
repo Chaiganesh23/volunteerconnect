@@ -10,13 +10,13 @@ import {
   query,
   where,
   getDocs,
+  setDoc, // ✅ Fix: Import this
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const RequestManagement = () => {
   const { eventId } = useParams();
   const [eventDetails, setEventDetails] = useState<any>(null);
-  const [organizationDocUid, setOrganizationDocUid] = useState<string>('');
   const [volunteers, setVolunteers] = useState({
     registered: [] as any[],
     accepted: [] as any[],
@@ -33,12 +33,6 @@ const RequestManagement = () => {
       if (eventSnap.exists()) {
         const data = eventSnap.data();
         setEventDetails(data);
-
-        // Find organization document UID
-        const orgsSnap = await getDoc(doc(db, 'organizations', data.org_id));
-        if (orgsSnap.exists()) {
-          setOrganizationDocUid(orgsSnap.id);
-        }
       }
     };
 
@@ -96,68 +90,66 @@ const RequestManagement = () => {
   }, [eventId]);
 
   const handleRequestAction = async (uid: string, action: 'accept' | 'reject') => {
-      if (!eventId || !eventDetails) return;
-      const ref = doc(db, 'eventvolunteer', eventId);
+    if (!eventId || !eventDetails) return;
+    const ref = doc(db, 'eventvolunteer', eventId);
 
-      const newRegistered = volunteers.registered.filter((v) => v.uid !== uid);
-      const newAccepted = action === 'accept' ? [...volunteers.accepted.map(v => v.uid), uid] : volunteers.accepted.map(v => v.uid);
-      const newRejected = action === 'reject' ? [...volunteers.rejected.map(v => v.uid), uid] : volunteers.rejected.map(v => v.uid);
+    const newRegistered = volunteers.registered.filter((v) => v.uid !== uid);
+    const newAccepted = action === 'accept' ? [...volunteers.accepted.map(v => v.uid), uid] : volunteers.accepted.map(v => v.uid);
+    const newRejected = action === 'reject' ? [...volunteers.rejected.map(v => v.uid), uid] : volunteers.rejected.map(v => v.uid);
 
-      await updateDoc(ref, {
-        registered: newRegistered.map(v => v.uid),
-        accepted: Array.from(new Set(newAccepted)),
-        rejected: Array.from(new Set(newRejected)),
-      });
+    await updateDoc(ref, {
+      registered: newRegistered.map(v => v.uid),
+      accepted: Array.from(new Set(newAccepted)),
+      rejected: Array.from(new Set(newRejected)),
+    });
 
-      setVolunteers((prev) => ({
-        registered: newRegistered,
-        accepted: action === 'accept' ? [...prev.accepted, prev.registered.find(v => v.uid === uid)!] : prev.accepted,
-        rejected: action === 'reject' ? [...prev.rejected, prev.registered.find(v => v.uid === uid)!] : prev.rejected,
-      }));
+    setVolunteers((prev) => ({
+      registered: newRegistered,
+      accepted: action === 'accept' ? [...prev.accepted, prev.registered.find(v => v.uid === uid)!] : prev.accepted,
+      rejected: action === 'reject' ? [...prev.rejected, prev.registered.find(v => v.uid === uid)!] : prev.rejected,
+    }));
 
-      // Notification message
-      const message =
-        action === 'accept'
-          ? `Your request has been accepted for the event '${eventDetails.title}'.`
-          : `We appreciate your interest. Unfortunately, your request for the event '${eventDetails.title}' was not accepted.`;
+    // Notification message
+    const message =
+      action === 'accept'
+        ? `Your request has been accepted for the event '${eventDetails.title}'.`
+        : `We appreciate your interest. Unfortunately, your request for the event '${eventDetails.title}' was not accepted.`;
 
-      await addDoc(collection(db, 'notifications'), {
-        eventUid: eventId,
-        organizationUid: eventDetails.org_id || '',
+    await addDoc(collection(db, 'notifications'), {
+      eventUid: eventId,
+      organizationUid: eventDetails.org_id || '',
+      volunteerUid: uid,
+      message,
+      createdAt: serverTimestamp(),
+    });
+
+    // Add to upcomingevents if accepted
+    if (action === 'accept') {
+      const upcomingRef = doc(db, 'upcomingevents', uid);
+      const existing = await getDoc(upcomingRef);
+
+      const eventData = {
         volunteerUid: uid,
-        message,
+        eventUid: [eventId],
+        eventName: eventDetails.title,
+        eventDate: eventDetails.date,
+        eventTime: eventDetails.timeSlot || eventDetails.time,
+        organizationUid: eventDetails.org_id || '',
         createdAt: serverTimestamp(),
-      });
+      };
 
-      // Upcoming events logic
-      if (action === 'accept') {
-        const upcomingRef = doc(db, 'upcomingevents', uid);
-        const existing = await getDoc(upcomingRef);
-
-        if (existing.exists()) {
-          const data = existing.data();
-          const updatedEventUids = Array.from(new Set([...(data.eventUid || []), eventId]));
-          await updateDoc(upcomingRef, {
-            eventUid: updatedEventUids,
-            eventName: eventDetails.title,
-            eventDate: eventDetails.date,
-            eventTime: eventDetails.timeSlot,
-            organizationUid: eventDetails.org_id || '',
-            createdAt: serverTimestamp(),
-          });
-        } else {
-          await setDoc(upcomingRef, {
-            volunteerUid: uid,
-            eventUid: [eventId],
-            eventName: eventDetails.title,
-            eventDate: eventDetails.date,
-            eventTime: eventDetails.timeSlot,
-            organizationUid: eventDetails.org_id || '',
-            createdAt: serverTimestamp(),
-          });
-        }
+      if (existing.exists()) {
+        const data = existing.data();
+        const updatedEventUids = Array.from(new Set([...(data.eventUid || []), eventId]));
+        await updateDoc(upcomingRef, {
+          ...eventData,
+          eventUid: updatedEventUids,
+        });
+      } else {
+        await setDoc(upcomingRef, eventData);
       }
-    };
+    }
+  };
 
   const renderVolunteer = (volunteer: any) => {
     const isAccepted = volunteers.accepted.some((v) => v.uid === volunteer.uid);
@@ -221,7 +213,7 @@ const RequestManagement = () => {
           <h2 className="text-2xl font-semibold mb-2">{eventDetails.title}</h2>
           <p className="text-gray-700 mb-1">{eventDetails.description}</p>
           <p className="text-sm text-gray-600">
-            {eventDetails.date} • {eventDetails.time} • {eventDetails.venue}
+            {eventDetails.date} • {eventDetails.timeSlot || eventDetails.time} • {eventDetails.venue}
           </p>
         </div>
       )}
@@ -256,8 +248,8 @@ const RequestManagement = () => {
               <p><strong>Location:</strong> {selectedVolunteer.location}</p>
               <p><strong>Skills:</strong> {selectedVolunteer.skills?.join(', ') || 'N/A'}</p>
               <p><strong>Interests:</strong> {selectedVolunteer.interests?.join(', ') || 'N/A'}</p>
-              <p><strong>Available Days:</strong> {selectedVolunteer.availableDay?.join(', ') || 'N/A'}</p>
-              <p><strong>Available Times:</strong> {selectedVolunteer.availableTime?.join(', ') || 'N/A'}</p>
+              <p><strong>Available Days:</strong> {selectedVolunteer.availableDays?.join(', ') || 'N/A'}</p>
+              <p><strong>Available Times:</strong> {selectedVolunteer.availableTimes?.join(', ') || 'N/A'}</p>
             </div>
             <div className="flex justify-end mt-6">
               <button
