@@ -8,7 +8,7 @@ from flask_cors import CORS
 from datetime import datetime as dt, timedelta
 
 # Initialize Firebase
-cred = credentials.Certificate(r"/Users/chaiganeshj/Documents/project/src/volunteerhub-fc5be-firebase-adminsdk-fbsvc-3bb2b6a0b7.json")
+cred = credentials.Certificate("Enter your crendentials here")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
