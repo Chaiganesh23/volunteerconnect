@@ -21,7 +21,7 @@ import {
 
   const parseTimeRange = (timeRange: string) => {
     if (typeof timeRange !== 'string' || !timeRange.includes('-')) {
-      console.warn('⏰ Invalid time range format:', timeRange);
+      console.warn('Invalid time range format:', timeRange);
       return [0, 0]; // Return a neutral range
     }
 
@@ -149,8 +149,8 @@ import {
         createdAt: serverTimestamp(),
       });
 
-      console.log('✅ Top matched volunteers stored:', top);
+      console.log(' Top matched volunteers stored:', top);
     } catch (matchErr) {
-      console.error('❌ Error during volunteer matching:', matchErr);
+      console.error(' Error during volunteer matching:', matchErr);
     }
   };
